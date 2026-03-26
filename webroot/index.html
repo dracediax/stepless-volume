@@ -244,17 +244,6 @@
     </div>
   </div>
 
-  <div class="setting-group">
-    <h3>Bluetooth</h3>
-    <div class="setting-row">
-      <input type="checkbox" id="bt-absvol-toggle">
-      <label for="bt-absvol-toggle">Disable absolute volume</label>
-    </div>
-    <div class="setting-info">
-      When enabled, Android and your Bluetooth device have <b>separate</b> volume controls. Set your speaker/soundbar to a comfortable level, then use phone volume for fine-grained control.<br><br>
-      <b>Enable this if:</b> Volume jumps in large steps over Bluetooth, or you need to press the button twice for it to register.
-    </div>
-  </div>
 
   <div class="setting-group">
     <h3>Advanced</h3>
@@ -333,10 +322,6 @@ function loadConfig() {
       document.getElementById('debug-toggle').checked = true;
       document.getElementById('debug-btn').style.display = 'block';
     }
-    var btMatch = settings.match(/bt_disable_absvol=(\w+)/);
-    if (btMatch && btMatch[1] === 'on') {
-      document.getElementById('bt-absvol-toggle').checked = true;
-    }
   }
   document.getElementById('stream-select').value = streamMode;
 }
@@ -389,18 +374,14 @@ function saveConfig() {
   // Save settings
   streamMode = document.getElementById('stream-select').value;
   var debugOn = document.getElementById('debug-toggle').checked;
-  var btAbsVol = document.getElementById('bt-absvol-toggle').checked;
   document.getElementById('debug-btn').style.display = debugOn ? 'block' : 'none';
   if (!debugOn) document.getElementById('debug-out').style.display = 'none';
-  exec("echo 'stream=" + streamMode + "\\ndebug_menu=" + (debugOn ? 'on' : 'off') + "\\nbt_disable_absvol=" + (btAbsVol ? 'on' : 'off') + "' > " + SETTINGS_PATH);
+  exec("echo 'stream=" + streamMode + "\\ndebug_menu=" + (debugOn ? 'on' : 'off') + "' > " + SETTINGS_PATH);
 
   // Update system.prop in module directory
   var propContent = 'ro.config.media_vol_steps=' + newSteps;
   if (streamMode === 'both') {
     propContent += '\\nro.config.vc_call_vol_steps=' + newSteps;
-  }
-  if (btAbsVol) {
-    propContent += '\\npersist.bluetooth.disableabsvol=true';
   }
   exec("echo '" + propContent + "' > " + MODULE_PROP);
 
@@ -424,12 +405,8 @@ function showDebug() {
   var s1 = '';
   var mediaSteps = exec("getprop ro.config.media_vol_steps").trim() || '(not set)';
   var callSteps = exec("getprop ro.config.vc_call_vol_steps").trim() || '(not set)';
-  var btAbsVol = exec("getprop persist.bluetooth.disableabsvol").trim() || 'false';
-  var btConnected = exec("dumpsys bluetooth_manager 2>/dev/null | grep -c 'state: connected' | tr -d '\\n'").trim() || '0';
   s1 += '<span class="dbg-key">ro.config.media_vol_steps</span>  <span class="dbg-ok">' + mediaSteps + '</span>\n';
   s1 += '<span class="dbg-key">ro.config.vc_call_vol_steps</span>  <span class="dbg-ok">' + callSteps + '</span>\n';
-  s1 += '<span class="dbg-key">persist.bluetooth.disableabsvol</span>  <span class="' + (btAbsVol === 'true' ? 'dbg-ok' : 'dbg-dim') + '">' + btAbsVol + '</span>\n';
-  s1 += '<span class="dbg-key">bluetooth connections</span>  <span class="dbg-dim">' + btConnected + '</span>\n';
   html += '<div class="dbg-section"><h3>SYSTEM PROPERTIES</h3>' + s1 + '</div>';
 
   // Config files
@@ -450,7 +427,7 @@ function showDebug() {
   s3 += '<span class="dbg-key">module enabled</span>  <span class="' + (modDisabled ? 'dbg-warn' : 'dbg-ok') + '">' + (modDisabled ? 'DISABLED' : 'yes') + '</span>\n';
   html += '<div class="dbg-section"><h3>MODULE STATUS</h3>' + s3 + '</div>';
 
-  el.innerHTML = '<div style="margin-top:12px"><div style="text-align:center;color:#58a6ff;font-size:14px;font-weight:600;margin-bottom:8px">v1.3</div>' + html + '</div>';
+  el.innerHTML = '<div style="margin-top:12px"><div style="text-align:center;color:#58a6ff;font-size:14px;font-weight:600;margin-bottom:8px">v1.4</div>' + html + '</div>';
 
   // Write debug info to file for ADB retrieval
   var logLines = [
@@ -459,8 +436,6 @@ function showDebug() {
     '',
     'ro.config.media_vol_steps=' + mediaSteps,
     'ro.config.vc_call_vol_steps=' + callSteps,
-    'persist.bluetooth.disableabsvol=' + btAbsVol,
-    'bluetooth_connections=' + btConnected,
     '',
     'config=' + config,
     'system.prop=' + sysprop,
