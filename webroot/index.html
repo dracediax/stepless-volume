@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stepless Volume</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, system-ui, sans-serif;
+    background: #1a1a2e; color: #e0e0e0;
+    padding: 16px; min-height: 100vh;
+  }
+  h1 { font-size: 20px; font-weight: 600; margin-bottom: 4px; color: #fff; }
+  .subtitle { font-size: 13px; color: #888; margin-bottom: 24px; }
+
+  .card {
+    background: #16213e; border-radius: 12px;
+    padding: 16px; margin-bottom: 12px;
+  }
+  .card h2 {
+    font-size: 14px; color: #8899bb; margin-bottom: 12px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+
+  .current-val {
+    text-align: center; padding: 20px 0;
+  }
+  .current-val .big {
+    font-size: 48px; font-weight: 700; color: #fff;
+  }
+  .current-val .unit {
+    font-size: 16px; color: #888; margin-left: 4px;
+  }
+  .current-val .sub {
+    font-size: 13px; color: #666; margin-top: 4px;
+  }
+
+  .input-row {
+    display: flex; gap: 12px; margin-bottom: 12px;
+  }
+  .input-group {
+    flex: 1;
+  }
+  .input-group label {
+    display: block; font-size: 12px; color: #888;
+    margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .input-group input {
+    width: 100%; background: #0f1a30; border: 1px solid #334;
+    border-radius: 8px; padding: 12px; color: #fff;
+    font-size: 18px; font-weight: 600; outline: none;
+    text-align: center;
+  }
+  .input-group input:focus { border-color: #5577bb; }
+
+  .slider-wrap {
+    margin: 16px 0;
+  }
+  .slider-wrap input[type="range"] {
+    width: 100%; height: 6px; -webkit-appearance: none;
+    background: #0f1a30; border-radius: 3px; outline: none;
+  }
+  .slider-wrap input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 24px; height: 24px;
+    background: #4466aa; border-radius: 50%; cursor: pointer;
+  }
+  .slider-labels {
+    display: flex; justify-content: space-between;
+    font-size: 11px; color: #666; margin-top: 4px;
+  }
+
+  .presets {
+    display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;
+  }
+  .preset {
+    background: #0f1a30; border: 1px solid #334; border-radius: 8px;
+    padding: 8px 14px; color: #aab; font-size: 13px;
+    cursor: pointer; text-align: center; flex: 1; min-width: 60px;
+  }
+  .preset:active { background: #1a2a4a; }
+  .preset.active { border-color: #4466aa; color: #fff; background: #1a2a4a; }
+
+  .btn {
+    width: 100%; padding: 14px; color: #fff;
+    border: none; border-radius: 12px; font-size: 15px;
+    font-weight: 500; cursor: pointer; margin-top: 8px;
+  }
+  .btn-save { background: #4466aa; }
+  .btn-save:active { background: #335588; }
+
+  .info {
+    font-size: 12px; color: #666; line-height: 1.6; margin-top: 8px;
+  }
+
+  .status {
+    text-align: center; font-size: 13px;
+    color: #888; margin-top: 12px; min-height: 20px;
+  }
+
+  .settings-toggle {
+    width: 100%; padding: 14px; background: #1a2a4a; color: #ccd;
+    border: 1px solid #334477; border-radius: 12px; font-size: 15px;
+    font-weight: 600; cursor: pointer; margin-top: 16px; text-align: center;
+    letter-spacing: 0.5px;
+  }
+  .settings-toggle:active { background: #16213e; }
+  .settings-panel {
+    display: none; background: #16213e; border: 1px solid #334477;
+    border-top: none; border-radius: 0 0 12px 12px; padding: 16px;
+    margin-top: -4px;
+  }
+  .settings-panel.open { display: block; }
+  .setting-group {
+    margin-bottom: 16px; padding-bottom: 16px;
+    border-bottom: 1px solid #1a2a3a;
+  }
+  .setting-group:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .setting-group h3 {
+    font-size: 13px; color: #8899bb; margin-bottom: 8px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .setting-row {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+  }
+  .setting-row input[type="checkbox"] {
+    width: 18px; height: 18px; accent-color: #4466aa; flex-shrink: 0;
+  }
+  .setting-row label { font-size: 13px; color: #ccc; cursor: pointer; }
+  .setting-row select {
+    background: #0f1a30; border: 1px solid #334; border-radius: 8px;
+    padding: 6px 10px; color: #ccc; font-size: 13px; outline: none;
+  }
+  .setting-info {
+    font-size: 12px; color: #888; line-height: 1.6; margin-top: 4px;
+  }
+  .setting-warn {
+    font-size: 11px; color: #d29922; background: #2a2a1a;
+    border-radius: 6px; padding: 8px 10px; margin-top: 8px; line-height: 1.5;
+  }
+
+  .dbg-section {
+    background: #0d1117; border: 1px solid #30363d; border-radius: 8px;
+    margin: 10px 0; padding: 12px; font-family: monospace;
+    font-size: 13px; line-height: 1.6; color: #c9d1d9;
+    word-break: break-all; white-space: pre-wrap;
+  }
+  .dbg-section h3 {
+    font-size: 13px; color: #58a6ff; margin: 0 0 8px 0;
+    padding-bottom: 6px; border-bottom: 1px solid #21262d;
+    font-family: -apple-system, system-ui, sans-serif;
+  }
+  .dbg-ok { color: #3fb950; }
+  .dbg-warn { color: #d29922; }
+  .dbg-dim { color: #6e7681; }
+  .dbg-key { color: #79c0ff; }
+
+  .reboot-banner {
+    display: none; position: fixed; top: 0; left: 0; right: 0;
+    background: #2a4a6a; color: #fff; padding: 14px 16px;
+    font-size: 14px; font-weight: 500; text-align: center;
+    z-index: 100; border-bottom: 2px solid #5588bb;
+    animation: slideDown 0.3s ease-out;
+  }
+  .reboot-banner .dismiss {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; color: #aac; font-size: 18px; cursor: pointer;
+  }
+  .btn-reboot {
+    display: none; background: #aa3333; margin-top: 8px;
+  }
+  .btn-reboot:active { background: #882222; }
+  @keyframes slideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+</style>
+</head>
+<body>
+
+<div class="reboot-banner" id="reboot-banner">
+  Reboot to apply volume changes
+  <button class="dismiss" onclick="document.getElementById('reboot-banner').style.display='none'">&times;</button>
+</div>
+
+<h1>Stepless Volume</h1>
+<p class="subtitle">Fine-grained volume control for your device</p>
+
+<div class="card">
+  <h2>Current Setting</h2>
+  <div class="current-val">
+    <span class="big" id="current-steps">-</span><span class="unit">steps</span>
+    <div class="sub" id="current-pct">-</div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Configure</h2>
+
+  <div class="presets">
+    <div class="preset" onclick="setSteps(15)">15<br><span style="font-size:11px;color:#888">Stock</span></div>
+    <div class="preset" onclick="setSteps(30)">30<br><span style="font-size:11px;color:#888">Fine</span></div>
+    <div class="preset" onclick="setSteps(50)">50<br><span style="font-size:11px;color:#888">Finer</span></div>
+    <div class="preset" onclick="setSteps(100)">100<br><span style="font-size:11px;color:#888">Ultra</span></div>
+  </div>
+
+  <div class="slider-wrap">
+    <input type="range" id="slider" min="5" max="150" value="30" oninput="onSlider(this.value)">
+    <div class="slider-labels">
+      <span>5</span>
+      <span>50</span>
+      <span>100</span>
+      <span>150</span>
+    </div>
+  </div>
+
+  <div class="input-row">
+    <div class="input-group">
+      <label>Steps</label>
+      <input type="number" id="input-steps" min="5" max="150" value="30" oninput="onStepsInput(this.value)">
+    </div>
+    <div class="input-group">
+      <label>% per step</label>
+      <input type="number" id="input-pct" min="0.5" max="20" step="0.1" value="3.3" oninput="onPctInput(this.value)">
+    </div>
+  </div>
+
+  <div class="info">
+    More steps = finer control. Stock Android uses 15 steps (~6.7% each). 30 steps (~3.3%) is a good balance. Values above 100 may feel sluggish.
+  </div>
+</div>
+
+<button class="settings-toggle" onclick="toggleSettings()">Settings</button>
+<div class="settings-panel" id="settings-panel">
+
+  <div class="setting-group">
+    <h3>Volume Stream</h3>
+    <div class="setting-row">
+      <label for="stream-select">Apply to:</label>
+      <select id="stream-select">
+        <option value="media">Media only</option>
+        <option value="both">Media + Call</option>
+      </select>
+    </div>
+    <div class="setting-info">
+      "Media + Call" also sets <code>ro.config.vc_call_vol_steps</code> for voice call volume.
+    </div>
+  </div>
+
+  <div class="setting-group">
+    <h3>Bluetooth</h3>
+    <div class="setting-row">
+      <input type="checkbox" id="bt-absvol-toggle">
+      <label for="bt-absvol-toggle">Disable absolute volume</label>
+    </div>
+    <div class="setting-info">
+      When enabled, Android and your Bluetooth device have <b>separate</b> volume controls. Set your speaker/soundbar to a comfortable level, then use phone volume for fine-grained control.<br><br>
+      <b>Enable this if:</b> Volume jumps in large steps over Bluetooth, or you need to press the button twice for it to register.
+    </div>
+  </div>
+
+  <div class="setting-group">
+    <h3>Advanced</h3>
+    <div class="setting-row">
+      <input type="checkbox" id="debug-toggle">
+      <label for="debug-toggle">Enable debug menu</label>
+    </div>
+  </div>
+
+  <div class="setting-warn" style="color:#888;background:none">
+    Press <b>Save Configuration</b> to apply settings changes.
+  </div>
+
+</div>
+
+<button class="btn btn-save" onclick="saveConfig()">Save Configuration</button>
+<button class="btn btn-reboot" id="reboot-btn" onclick="rebootNow()">Reboot Now</button>
+<button class="btn" id="debug-btn" style="display:none;background:#333;margin-top:8px;font-size:13px" onclick="showDebug()">Show Debug Info</button>
+<p class="status" id="status"></p>
+<div id="debug-out" style="display:none"></div>
+
+<script>
+var CONFIG_PATH = '/data/adb/volsteps_config';
+var SETTINGS_PATH = '/data/adb/volsteps_settings';
+var MODULE_PROP = '/data/adb/modules/stepless-volume/system.prop';
+var currentSteps = 30;
+var newSteps = 30;
+var streamMode = 'media';
+
+function exec(cmd) {
+  var apis = [
+    { name: 'ksu', obj: typeof ksu !== 'undefined' ? ksu : null },
+    { name: 'ksuwebui', obj: typeof ksuwebui !== 'undefined' ? ksuwebui : null }
+  ];
+  for (var a = 0; a < apis.length; a++) {
+    if (!apis[a].obj) continue;
+    try {
+      var r = apis[a].obj.exec(cmd);
+      if (typeof r === 'string') return r;
+      if (typeof r === 'object' && r !== null) return r.stdout || r.out || '';
+      return String(r);
+    } catch(e) {}
+  }
+  return '';
+}
+
+function loadConfig() {
+  // Read current active value from system property
+  var activeProp = exec("getprop ro.config.media_vol_steps").trim();
+  if (activeProp && parseInt(activeProp) > 0) {
+    currentSteps = parseInt(activeProp);
+  }
+
+  // Read saved config
+  var saved = exec("cat " + CONFIG_PATH + " 2>/dev/null").trim();
+  if (saved && parseInt(saved) > 0) {
+    newSteps = parseInt(saved);
+  } else {
+    newSteps = currentSteps;
+  }
+
+  // Display current
+  document.getElementById('current-steps').textContent = currentSteps;
+  document.getElementById('current-pct').textContent = (100 / currentSteps).toFixed(1) + '% per step';
+
+  // Set inputs
+  updateInputs(newSteps);
+
+  // Load settings
+  var settings = exec("cat " + SETTINGS_PATH + " 2>/dev/null").trim();
+  if (settings) {
+    var streamMatch = settings.match(/stream=(\w+)/);
+    if (streamMatch) streamMode = streamMatch[1];
+    var debugMatch = settings.match(/debug_menu=(\w+)/);
+    if (debugMatch && debugMatch[1] === 'on') {
+      document.getElementById('debug-toggle').checked = true;
+      document.getElementById('debug-btn').style.display = 'block';
+    }
+    var btMatch = settings.match(/bt_disable_absvol=(\w+)/);
+    if (btMatch && btMatch[1] === 'on') {
+      document.getElementById('bt-absvol-toggle').checked = true;
+    }
+  }
+  document.getElementById('stream-select').value = streamMode;
+}
+
+function updateInputs(steps) {
+  steps = Math.max(5, Math.min(150, Math.round(steps)));
+  newSteps = steps;
+  document.getElementById('input-steps').value = steps;
+  document.getElementById('input-pct').value = (100 / steps).toFixed(1);
+  document.getElementById('slider').value = steps;
+
+  // Highlight matching preset
+  var presets = document.querySelectorAll('.preset');
+  for (var i = 0; i < presets.length; i++) {
+    var val = parseInt(presets[i].textContent);
+    presets[i].className = (val === steps) ? 'preset active' : 'preset';
+  }
+}
+
+function setSteps(val) {
+  updateInputs(val);
+}
+
+function onSlider(val) {
+  updateInputs(parseInt(val));
+}
+
+function onStepsInput(val) {
+  var v = parseInt(val);
+  if (v > 0) updateInputs(v);
+}
+
+function onPctInput(val) {
+  var v = parseFloat(val);
+  if (v > 0) {
+    var steps = Math.round(100 / v);
+    updateInputs(steps);
+  }
+}
+
+function toggleSettings() {
+  var panel = document.getElementById('settings-panel');
+  panel.className = panel.className.indexOf('open') !== -1 ? 'settings-panel' : 'settings-panel open';
+}
+
+function saveConfig() {
+  // Save step count
+  exec("echo '" + newSteps + "' > " + CONFIG_PATH);
+
+  // Save settings
+  streamMode = document.getElementById('stream-select').value;
+  var debugOn = document.getElementById('debug-toggle').checked;
+  var btAbsVol = document.getElementById('bt-absvol-toggle').checked;
+  document.getElementById('debug-btn').style.display = debugOn ? 'block' : 'none';
+  if (!debugOn) document.getElementById('debug-out').style.display = 'none';
+  exec("echo 'stream=" + streamMode + "\\ndebug_menu=" + (debugOn ? 'on' : 'off') + "\\nbt_disable_absvol=" + (btAbsVol ? 'on' : 'off') + "' > " + SETTINGS_PATH);
+
+  // Update system.prop in module directory
+  var propContent = 'ro.config.media_vol_steps=' + newSteps;
+  if (streamMode === 'both') {
+    propContent += '\\nro.config.vc_call_vol_steps=' + newSteps;
+  }
+  if (btAbsVol) {
+    propContent += '\\npersist.bluetooth.disableabsvol=true';
+  }
+  exec("echo '" + propContent + "' > " + MODULE_PROP);
+
+  document.getElementById('status').textContent = 'Saved: ' + newSteps + ' steps (' + (100 / newSteps).toFixed(1) + '% each)';
+
+  // Show reboot prompt if value changed
+  if (newSteps !== currentSteps) {
+    document.getElementById('reboot-banner').style.display = 'block';
+    document.getElementById('reboot-btn').style.display = 'block';
+  }
+}
+
+function showDebug() {
+  var el = document.getElementById('debug-out');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  if (el.style.display === 'none') return;
+
+  var html = '';
+
+  // System properties
+  var s1 = '';
+  var mediaSteps = exec("getprop ro.config.media_vol_steps").trim() || '(not set)';
+  var callSteps = exec("getprop ro.config.vc_call_vol_steps").trim() || '(not set)';
+  var btAbsVol = exec("getprop persist.bluetooth.disableabsvol").trim() || 'false';
+  var btConnected = exec("dumpsys bluetooth_manager 2>/dev/null | grep -c 'state: connected' | tr -d '\\n'").trim() || '0';
+  s1 += '<span class="dbg-key">ro.config.media_vol_steps</span>  <span class="dbg-ok">' + mediaSteps + '</span>\n';
+  s1 += '<span class="dbg-key">ro.config.vc_call_vol_steps</span>  <span class="dbg-ok">' + callSteps + '</span>\n';
+  s1 += '<span class="dbg-key">persist.bluetooth.disableabsvol</span>  <span class="' + (btAbsVol === 'true' ? 'dbg-ok' : 'dbg-dim') + '">' + btAbsVol + '</span>\n';
+  s1 += '<span class="dbg-key">bluetooth connections</span>  <span class="dbg-dim">' + btConnected + '</span>\n';
+  html += '<div class="dbg-section"><h3>SYSTEM PROPERTIES</h3>' + s1 + '</div>';
+
+  // Config files
+  var s2 = '';
+  var config = exec("cat " + CONFIG_PATH + " 2>/dev/null").trim() || '(not set)';
+  var sysprop = exec("cat " + MODULE_PROP + " 2>/dev/null").trim() || '(not set)';
+  var settings = exec("cat " + SETTINGS_PATH + " 2>/dev/null").trim() || '(not set)';
+  s2 += '<span class="dbg-key">volsteps_config</span>  ' + config + '\n';
+  s2 += '<span class="dbg-key">system.prop</span>  ' + sysprop + '\n';
+  s2 += '<span class="dbg-key">settings</span>  ' + settings + '\n';
+  html += '<div class="dbg-section"><h3>CONFIG FILES</h3>' + s2 + '</div>';
+
+  // Module status
+  var s3 = '';
+  var modExists = exec("ls /data/adb/modules/stepless-volume/module.prop 2>/dev/null").trim();
+  var modDisabled = exec("ls /data/adb/modules/stepless-volume/disable 2>/dev/null").trim();
+  s3 += '<span class="dbg-key">module installed</span>  <span class="' + (modExists ? 'dbg-ok' : 'dbg-warn') + '">' + (modExists ? 'yes' : 'no') + '</span>\n';
+  s3 += '<span class="dbg-key">module enabled</span>  <span class="' + (modDisabled ? 'dbg-warn' : 'dbg-ok') + '">' + (modDisabled ? 'DISABLED' : 'yes') + '</span>\n';
+  html += '<div class="dbg-section"><h3>MODULE STATUS</h3>' + s3 + '</div>';
+
+  el.innerHTML = '<div style="margin-top:12px"><div style="text-align:center;color:#58a6ff;font-size:14px;font-weight:600;margin-bottom:8px">v1.3</div>' + html + '</div>';
+
+  // Write debug info to file for ADB retrieval
+  var logLines = [
+    '=== Stepless Volume Debug ===',
+    'Date: ' + new Date().toString(),
+    '',
+    'ro.config.media_vol_steps=' + mediaSteps,
+    'ro.config.vc_call_vol_steps=' + callSteps,
+    'persist.bluetooth.disableabsvol=' + btAbsVol,
+    'bluetooth_connections=' + btConnected,
+    '',
+    'config=' + config,
+    'system.prop=' + sysprop,
+    'settings=' + settings,
+    '',
+    'module_installed=' + (modExists ? 'yes' : 'no'),
+    'module_enabled=' + (modDisabled ? 'DISABLED' : 'yes')
+  ];
+  exec("echo '" + logLines.join('\\n').replace(/'/g, "'\\''") + "' > /data/adb/modules/stepless-volume/debug.log");
+}
+
+function rebootNow() {
+  exec("svc power reboot || reboot");
+}
+
+loadConfig();
+</script>
+</body>
+</html>
