@@ -12,7 +12,7 @@
 
 ## The Problem
 
-Android's default 15 volume steps (~6.7% each) are too coarse — especially over Bluetooth speakers and soundbars. It's either too loud or too quiet, with nothing in between.
+Android's default 15 volume steps (~6.7% each) are too coarse. It's either too loud or too quiet, with nothing in between.
 
 ## The Fix
 
@@ -46,28 +46,35 @@ This module lets you set any number of volume steps (5-150). More steps = finer 
 
 ---
 
-## Settings
-
 <details>
-<summary>Volume Stream</summary>
+<summary><b>Settings</b></summary>
+
+### Volume Stream
 
 Choose whether to apply the step count to media volume only, or media + voice calls.
+
+### Safety
+
+**Disable safe media volume warning** — removes the "volume above safe level" popup. With more steps, this warning can trigger at low actual volume since it's based on step number. Sets `audio.safemedia.bypass=true`.
+
+### Debug Menu
+
+Enable in Settings > Advanced. Shows active system properties, config files, and module status. Also writes a log file accessible via ADB:
+
+```
+adb shell "su -c 'cat /data/adb/modules/stepless-volume/debug.log'"
+```
 
 </details>
 
 <details>
-<summary>Debug Menu</summary>
+<summary><b>Bluetooth Limitation</b></summary>
 
-Enable in Settings > Advanced. Shows:
-- Active system properties (`ro.config.media_vol_steps`, `persist.bluetooth.disableabsvol`)
-- Config file contents
-- Module status
-- Bluetooth connection info
+This module changes Android's internal volume steps. For **phone speakers and wired headphones**, this works perfectly — you get the exact number of steps you set.
 
-Debug info is also written to a log file accessible via ADB:
-```
-adb shell "su -c 'cat /data/adb/modules/stepless-volume/debug.log'"
-```
+For **Bluetooth devices**, volume is controlled via the AVRCP protocol. Your Bluetooth speaker/soundbar has its own fixed number of volume levels (typically 15-20). Android maps its steps to the device's levels, so you may still experience larger jumps over Bluetooth regardless of the step count you set.
+
+This is a firmware limitation of the Bluetooth device, not something Android can change. The device's own remote may support finer control because it communicates directly with the hardware, bypassing Bluetooth.
 
 </details>
 
@@ -86,15 +93,20 @@ Any manager that supports `system.prop` works. WebUI requires a manager with Web
 
 ---
 
-## How It Works
+<details>
+<summary><b>How It Works</b></summary>
 
-Android's `AudioService` reads `ro.config.media_vol_steps` once at boot. This module sets that property via `system.prop` at the `post-fs-data` stage — before AudioService initializes.
+Android's `AudioService` reads `ro.config.media_vol_steps` once at boot. This module sets that property via `system.prop` at the `post-fs-data` stage — before AudioService initializes. Requires a reboot to apply changes.
+
+### Data Files
 
 | File | Purpose |
 |------|---------|
 | `/data/adb/volsteps_config` | Saved step count (persists across updates) |
-| `/data/adb/volsteps_settings` | Stream mode, BT toggle, debug toggle |
+| `/data/adb/volsteps_settings` | Stream mode, safe volume bypass, debug toggle |
 | `system.prop` | Generated at boot from config |
+
+</details>
 
 ---
 
