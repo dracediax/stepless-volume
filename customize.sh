@@ -10,8 +10,14 @@ if [ -f "$CONFIG" ]; then
 
         if [ -f "$SETTINGS" ]; then
             STREAM=$(grep '^stream=' "$SETTINGS" | cut -d= -f2)
+            SAFE_BYPASS=$(grep '^safe_vol_bypass=' "$SETTINGS" | cut -d= -f2)
+
             if [ "$STREAM" = "both" ]; then
                 echo "ro.config.vc_call_vol_steps=$STEPS" >> "$MODPATH/system.prop"
+            fi
+            if [ "$SAFE_BYPASS" = "on" ]; then
+                echo "audio.safemedia.bypass=true" >> "$MODPATH/system.prop"
+                ui_print "- Safe media volume warning disabled"
             fi
         fi
 
