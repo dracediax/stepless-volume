@@ -19,16 +19,10 @@ if [ -f "$CONFIG" ]; then
             if [ "$STREAM" = "both" ]; then
                 echo "ro.config.vc_call_vol_steps=$STEPS" >> "$MODDIR/system.prop"
             fi
-
-            BT_ABSVOL=$(grep '^bt_disable_absvol=' "$SETTINGS" | cut -d= -f2)
-            if [ "$BT_ABSVOL" = "on" ]; then
-                echo "persist.bluetooth.disableabsvol=true" >> "$MODDIR/system.prop"
-            fi
         fi
 
         echo "steps=$STEPS" >> "$LOGFILE"
         echo "stream=$STREAM" >> "$LOGFILE"
-        echo "bt_absvol=$BT_ABSVOL" >> "$LOGFILE"
         echo "system.prop=$(cat "$MODDIR/system.prop")" >> "$LOGFILE"
     fi
 else
