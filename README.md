@@ -56,17 +56,6 @@ Choose whether to apply the step count to media volume only, or media + voice ca
 </details>
 
 <details>
-<summary>Bluetooth: Disable Absolute Volume</summary>
-
-If your Bluetooth speaker/soundbar has large volume jumps or requires double-pressing the volume button, enable this.
-
-**What it does:** Decouples Android's volume from the Bluetooth device's volume. Set your speaker to a comfortable level once, then use your phone's volume buttons for fine-grained control.
-
-**Sets:** `persist.bluetooth.disableabsvol=true`
-
-</details>
-
-<details>
 <summary>Debug Menu</summary>
 
 Enable in Settings > Advanced. Shows:
